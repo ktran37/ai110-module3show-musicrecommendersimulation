@@ -72,68 +72,134 @@ def load_songs(csv_path: str) -> List[Dict]:
                 "tempo_bpm": float(row["tempo_bpm"].strip()),
                 "valence": float(row["valence"].strip()),
                 "danceability": float(row["danceability"].strip()),
-                "acousticness": float(row["acousticness"].strip())
+                "acousticness": float(row["acousticness"].strip()),
+                "popularity": int(row["popularity"].strip()),
+                "release_year": int(row["release_year"].strip())
             }
             loaded_songs.append(song)
             
     return loaded_songs
 
-def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
+def score_song(user_prefs: Dict, song: Dict, mode: str = "default") -> Tuple[float, List[str]]:
     """
-    Scores a single song against user preferences.
-    Required by recommend_songs() and src/main.py
-    
-    Algorithm Recipe (Scoring Logic):
-    - Genre Match: +2.0 points if song.genre == user.favorite_genre
-    - Mood Match: +1.0 point if song.mood == user.favorite_mood
-    - Energy Proximity: +1.0 point max (1.0 - absolute difference between song.energy and user.target_energy)
-    - Danceability Proximity: +1.0 point max (1.0 - absolute difference between song.danceability and user.target_danceability)
+    Scores a single song against user preferences using different modes.
+    Modes available: "default", "genre_first", "energy_focused"
     """
     score = 0.0
     reasons = []
 
+    # Configure Strategy Weights
+    if mode == "genre_first":
+        genre_w = 3.0
+        mood_w = 0.5
+        energy_w = 1.0
+        dance_w = 1.0
+    elif mode == "energy_focused":
+        genre_w = 1.0
+        mood_w = 0.5
+        energy_w = 3.0
+        dance_w = 1.5
+    else: # default
+        genre_w = 1.0
+        mood_w = 1.0
+        energy_w = 2.0
+        dance_w = 1.0
+
     # Genre Match
     if song.get("genre") == user_prefs.get("favorite_genre"):
-        score += 2.0
-        reasons.append("Genre match (+2.0)")
+        score += genre_w
+        reasons.append(f"Genre match (+{genre_w:.1f})")
 
     # Mood Match
     if song.get("mood") == user_prefs.get("favorite_mood"):
-        score += 1.0
-        reasons.append("Mood match (+1.0)")
+        score += mood_w
+        reasons.append(f"Mood match (+{mood_w:.1f})")
 
     # Energy Proximity
     if "energy" in song and "target_energy" in user_prefs:
         energy_diff = abs(song["energy"] - user_prefs["target_energy"])
-        energy_points = max(0.0, 1.0 - energy_diff)
+        energy_points = max(0.0, 1.0 - energy_diff) * energy_w
         score += energy_points
         reasons.append(f"Energy proximity (+{energy_points:.2f})")
 
     # Danceability Proximity
     if "danceability" in song and "target_danceability" in user_prefs:
         dance_diff = abs(song["danceability"] - user_prefs["target_danceability"])
-        dance_points = max(0.0, 1.0 - dance_diff)
+        dance_points = max(0.0, 1.0 - dance_diff) * dance_w
         score += dance_points
         reasons.append(f"Danceability proximity (+{dance_points:.2f})")
 
+    # Popularity Bonus
+    if "target_popularity" in user_prefs and "popularity" in song:
+        pop_diff = abs(song["popularity"] - user_prefs["target_popularity"]) / 100.0
+        pop_points = max(0.0, 1.0 - pop_diff) * 1.0
+        score += pop_points
+        reasons.append(f"Popularity proximity (+{pop_points:.2f})")
+
+    # Release Decade Bonus
+    if "preferred_decade" in user_prefs and "release_year" in song:
+        decade = (song["release_year"] // 10) * 10
+        if decade == user_prefs["preferred_decade"]:
+            score += 1.0
+            reasons.append("Decade match (+1.0)")
+
     return score, reasons
 
-def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
+def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5, mode: str = "default") -> List[Tuple[Dict, float, str]]:
     """
     Functional implementation of the recommendation logic.
-    Required by src/main.py
+    Applies a diversity penalty to ensure variety.
     """
     scored_songs = []
     
-    # The Loop: Judge every individual song
     for song in songs:
-        score, reasons = score_song(user_prefs, song)
-        # Join the list of reasons into a single readable string
-        explanation = ", ".join(reasons)
-        scored_songs.append((song, score, explanation))
+        score, reasons = score_song(user_prefs, song, mode=mode)
+        scored_songs.append({"song": song, "score": score, "reasons": reasons})
         
-    # The Ranking: Sort the list of tuples by the score (which is at index 1) in descending order
-    ranked_songs = sorted(scored_songs, key=lambda item: item[1], reverse=True)
+    # Sort initially
+    scored_songs.sort(key=lambda item: item["score"], reverse=True)
     
-    # Return the Top K Results
-    return ranked_songs[:k]
+    final_recommendations = []
+    seen_artists = set()
+    
+    for item in scored_songs:
+        song = item["song"]
+        score = item["score"]
+        reasons = item["reasons"]
+        
+        # Diversity Penalty: Apply a harsh penalty if artist is already recommended
+        if song["artist"] in seen_artists:
+            score *= 0.5
+            reasons.append("Diversity penalty applied (x0.5 score)")
+        
+        # After checking penalty, if we still want it (we shouldn't resort live for a simple list, 
+        # but let's just accept the penalty and append. Wait, if we penalize we should ideally re-sort.
+        # Alternatively, for simplicity, we just penalize and format)
+        # Actually a true re-sort strategy is better, but maybe just appending with the reason is enough,
+        # or we skip taking more than 2 from the same artist.
+        # Let's say if it's already in seen_artists, we just don't add to final list if we want strict diversity,
+        # but the prompt says: "penalize a song's score if its artist is already present".
+        # Re-sorting approach:
+        pass
+        
+    # A proper way to do diversity penalty on the fly:
+    ranked_songs = []
+    for _ in range(min(k, len(scored_songs))):
+        if not scored_songs:
+            break
+        # Sort current pool to find the true max
+        scored_songs.sort(key=lambda item: item["score"], reverse=True)
+        best = scored_songs.pop(0)
+        
+        # Format the explanation
+        explanation = ", ".join(best["reasons"])
+        ranked_songs.append((best["song"], best["score"], explanation))
+        
+        # Apply penalty to remaining songs from the same artist
+        artist = best["song"]["artist"]
+        for other in scored_songs:
+            if other["song"]["artist"] == artist and "Diversity penalty applied" not in other["reasons"]:
+                other["score"] *= 0.5
+                other["reasons"].append("Diversity penalty (x0.5)")
+                
+    return ranked_songs

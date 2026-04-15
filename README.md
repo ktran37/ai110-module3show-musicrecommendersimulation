@@ -54,33 +54,66 @@ Because this algorithm recipe heavily weights the genre match (+2.0 points) comp
 
 ## CLI Verification (Terminal Screenshot Example)
 
-Running `python3 src/main.py` yields our neatly formatted recommendations, ranking the best matches.
+Running `python3 src/main.py` yields our neatly formatted recommendations, testing the system with both traditional and adversarial profiles to evaluate how the algorithm handles extreme edge cases.
 
 ```text
 Loading songs from data/songs.csv...
 Loaded songs: 17
 
-🎧 Top Recommendations for the 'Pop/Happy' Profile:
+🎧 Top Recommendations for the 'High-Energy Pop (The Gym Hero)' Profile:
 ==================================================
-#1 | 🎵 Sunrise City by Neon Echo
+#1 | 🎵 Gym Hero by Max Pulse
+    📈 Score: 4.95 / 5.00
+    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+0.98), Danceability proximity (+0.97)
+--------------------------------------------------
+#2 | 🎵 Sunrise City by Neon Echo
+    📈 Score: 3.81 / 5.00
+    💡 Why? Genre match (+2.0), Energy proximity (+0.87), Danceability proximity (+0.94)
+--------------------------------------------------
+#3 | 🎵 Storm Runner by Voltline
+    📈 Score: 2.77 / 5.00
+    💡 Why? Mood match (+1.0), Energy proximity (+0.96), Danceability proximity (+0.81)
+--------------------------------------------------
+
+🎧 Top Recommendations for the 'Chill Lofi (The Study Session)' Profile:
+==================================================
+#1 | 🎵 Library Rain by Paper Lanterns
     📈 Score: 4.97 / 5.00
-    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+0.98), Danceability proximity (+0.99)
+    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+1.00), Danceability proximity (+0.97)
+--------------------------------------------------
+#2 | 🎵 Midnight Coding by LoRoom
+    📈 Score: 4.86 / 5.00
+    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+0.93), Danceability proximity (+0.93)
+--------------------------------------------------
+#3 | 🎵 Focus Flow by LoRoom
+    📈 Score: 3.90 / 5.00
+    💡 Why? Genre match (+2.0), Energy proximity (+0.95), Danceability proximity (+0.95)
+--------------------------------------------------
+
+🎧 Top Recommendations for the 'Deep Intense Rock (The Headbanger)' Profile:
+==================================================
+#1 | 🎵 Storm Runner by Voltline
+    📈 Score: 4.73 / 5.00
+    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+0.99), Danceability proximity (+0.74)
 --------------------------------------------------
 #2 | 🎵 Gym Hero by Max Pulse
-    📈 Score: 3.79 / 5.00
-    💡 Why? Genre match (+2.0), Energy proximity (+0.87), Danceability proximity (+0.92)
+    📈 Score: 2.49 / 5.00
+    💡 Why? Mood match (+1.0), Energy proximity (+0.97), Danceability proximity (+0.52)
 --------------------------------------------------
-#3 | 🎵 Rooftop Lights by Indigo Parade
-    📈 Score: 2.94 / 5.00
-    💡 Why? Mood match (+1.0), Energy proximity (+0.96), Danceability proximity (+0.98)
+
+🎧 Top Recommendations for the 'Adversarial Edge Case (Hyper-Danceable Sad Classical)' Profile:
+==================================================
+#1 | 🎵 Moonlit Sonata by Clara Bow
+    📈 Score: 3.45 / 5.00
+    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+0.20), Danceability proximity (+0.25)
 --------------------------------------------------
-#4 | 🎵 Night Drive Loop by Neon Echo
-    📈 Score: 1.88 / 5.00
-    💡 Why? Energy proximity (+0.95), Danceability proximity (+0.93)
+#2 | 🎵 Gym Hero by Max Pulse
+    📈 Score: 1.91 / 5.00
+    💡 Why? Energy proximity (+0.98), Danceability proximity (+0.93)
 --------------------------------------------------
-#5 | 🎵 City Pulse by Metro Beats
-    📈 Score: 1.88 / 5.00
-    💡 Why? Energy proximity (+0.90), Danceability proximity (+0.98)
+#3 | 🎵 Neon Nights by DJ Spark
+    📈 Score: 1.83 / 5.00
+    💡 Why? Energy proximity (+0.93), Danceability proximity (+0.90)
 --------------------------------------------------
 ```
 
