@@ -17,17 +17,72 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+In the real world, music recommendation systems (like Spotify or Apple Music) use complex machine learning models, collaborative filtering (looking at what similar users listen to), and enormous datasets to predict what you want to hear next. They prioritize maximizing user engagement and listening time. **Our simulated version** uses a streamlined, content-based approach. It focuses on the intrinsic characteristics of the songs (like energy, genre, and mood) and matches them directly against a user's stated taste profile using a weighted scoring algorithm to recommend the closest matches.
 
-Some prompts to answer:
+### Features Used
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+**Song Objects** will use these specific features:
+- `genre` (categorical)
+- `mood` (categorical)
+- `energy` (numerical, 0.0 - 1.0)
+- `danceability` (numerical, 0.0 - 1.0)
 
-You can include a simple diagram or bullet list if helpful.
+**UserProfile Objects** will store matching preference criteria:
+- `preferred_genre`
+- `preferred_mood`
+- `preferred_energy`
+- `preferred_danceability`
+
+### Scoring and Ranking
+
+- **Scoring Rule:** For a given song, the system calculates a match score. Categorical matches (genre, mood) grant flat points if they match exactly. Numerical matches (energy, danceability) grant points based on proximity—the closer the song's value is to the user's preferred value, the higher the points.
+- **Weights:** Attributes are weighted differently (e.g., Genre might be worth more than Mood) to reflect that some preferences are stronger dealbreakers than others.
+- **Ranking Rule:** After scoring every song in the database, the recommender sorts them from highest score to lowest, returning the top results to the user.
+
+### Algorithm Recipe
+
+The finalized scoring logic assigns points to each song based on the following rules (Maximum score: 5.0):
+1. **Genre Match:** `+2.0` points if `song.genre` perfectly matches the user's `favorite_genre`.
+2. **Mood Match:** `+1.0` point if `song.mood` perfectly matches the user's `favorite_mood`.
+3. **Energy Proximity:** Up to `+1.0` point total, calculated as `1.0 - |song.energy - user.target_energy|`.
+4. **Danceability Proximity:** Up to `+1.0` point total, calculated as `1.0 - |song.danceability - user.target_danceability|`.
+
+### Potential Biases & Limitations
+Because this algorithm recipe heavily weights the genre match (+2.0 points) compared to other features, it might over-prioritize genre. This means the system could completely ignore great songs that perfectly match the user's desired mood, energy, and danceability simply because they fall under a different, un-preferred genre. It is a strictly content-based filter, meaning it does not capture more complex, emergent preferences over time or utilize collaborative community data.
+
+---
+
+## CLI Verification (Terminal Screenshot Example)
+
+Running `python3 src/main.py` yields our neatly formatted recommendations, ranking the best matches.
+
+```text
+Loading songs from data/songs.csv...
+Loaded songs: 17
+
+🎧 Top Recommendations for the 'Pop/Happy' Profile:
+==================================================
+#1 | 🎵 Sunrise City by Neon Echo
+    📈 Score: 4.97 / 5.00
+    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+0.98), Danceability proximity (+0.99)
+--------------------------------------------------
+#2 | 🎵 Gym Hero by Max Pulse
+    📈 Score: 3.79 / 5.00
+    💡 Why? Genre match (+2.0), Energy proximity (+0.87), Danceability proximity (+0.92)
+--------------------------------------------------
+#3 | 🎵 Rooftop Lights by Indigo Parade
+    📈 Score: 2.94 / 5.00
+    💡 Why? Mood match (+1.0), Energy proximity (+0.96), Danceability proximity (+0.98)
+--------------------------------------------------
+#4 | 🎵 Night Drive Loop by Neon Echo
+    📈 Score: 1.88 / 5.00
+    💡 Why? Energy proximity (+0.95), Danceability proximity (+0.93)
+--------------------------------------------------
+#5 | 🎵 City Pulse by Metro Beats
+    📈 Score: 1.88 / 5.00
+    💡 Why? Energy proximity (+0.90), Danceability proximity (+0.98)
+--------------------------------------------------
+```
 
 ---
 
