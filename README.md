@@ -2,16 +2,9 @@
 
 ## Project Summary
 
-In this project you will build and explain a small music recommender system.
+In this project, I built a highly modular, content-based music recommender simulator using Python. It successfully transforms complex song data (like tempo, acousticness, and popularity metrics) and a user's defined "taste profile" into a perfectly ranked and mathematically explained list of top tracks. 
 
-Your goal is to:
-
-- Represent songs and a user "taste profile" as data
-- Design a scoring rule that turns that data into recommendations
-- Evaluate what your system gets right and wrong
-- Reflect on how this mirrors real world AI recommenders
-
-Replace this paragraph with your own summary of what your version does.
+It surpasses the core requirements by supporting sophisticated real-world recommendation concepts like dynamic Scoring Modes (The Strategy Pattern), Live Diversity Penalities (to prevent artists from flooding a user's feed), and adversarial edge-case bias testing.
 
 ---
 
@@ -21,100 +14,60 @@ In the real world, music recommendation systems (like Spotify or Apple Music) us
 
 ### Features Used
 
-**Song Objects** will use these specific features:
-- `genre` (categorical)
-- `mood` (categorical)
-- `energy` (numerical, 0.0 - 1.0)
-- `danceability` (numerical, 0.0 - 1.0)
+**Song objects** utilize basic metadata and advanced numerical traits perfectly mapping to Spotify API aesthetics:
+- `genre` and `mood` (categorical strings)
+- `energy` and `danceability` (numerical, 0.0 - 1.0)
+- `popularity` (numerical index out of 100)
+- `release_year` (simulating release eras / decades)
 
-**UserProfile Objects** will store matching preference criteria:
-- `preferred_genre`
-- `preferred_mood`
-- `preferred_energy`
-- `preferred_danceability`
+**UserProfile Objects** store matching preference targets:
+- `preferred_genre` & `preferred_mood`
+- `target_energy` & `target_danceability`
+- `target_popularity` (mainstream vs indie taste)
+- `preferred_decade` (e.g. 2010s vs 1980s)
 
-### Scoring and Ranking
+### The Recommendation Data Flow
 
-- **Scoring Rule:** For a given song, the system calculates a match score. Categorical matches (genre, mood) grant flat points if they match exactly. Numerical matches (energy, danceability) grant points based on proximity—the closer the song's value is to the user's preferred value, the higher the points.
-- **Weights:** Attributes are weighted differently (e.g., Genre might be worth more than Mood) to reflect that some preferences are stronger dealbreakers than others.
-- **Ranking Rule:** After scoring every song in the database, the recommender sorts them from highest score to lowest, returning the top results to the user.
-
-### Algorithm Recipe
-
-The finalized scoring logic assigns points to each song based on the following rules (Maximum score: 5.0):
-1. **Genre Match:** `+2.0` points if `song.genre` perfectly matches the user's `favorite_genre`.
-2. **Mood Match:** `+1.0` point if `song.mood` perfectly matches the user's `favorite_mood`.
-3. **Energy Proximity:** Up to `+1.0` point total, calculated as `1.0 - |song.energy - user.target_energy|`.
-4. **Danceability Proximity:** Up to `+1.0` point total, calculated as `1.0 - |song.danceability - user.target_danceability|`.
+1. **Scoring Rule (+ Strategy Pattern):** For every song, the system calculates a match score. Depending on the `mode` configured (`default`, `genre_first`, or `energy_focused`), weights shift dynamically. Categorical matches grant flat points, while numerical matches grant proximity points—the closer the song's value is to the user's preferred value, the higher the mathematical yield.
+2. **Ranking Rule:** After scoring every song, the recommender sorts them from highest score to lowest.
+3. **Diversity Penalty Logic:** As it parses the top recommendations, if the system detects an artist has already placed a track securely in a user's top pool, any subsequent tracks by that identical artist take an immediate `x0.5` score penalty! 
+4. **Output formatting:** The sorted lists are converted into a crisp ASCII Terminal table explaining exactly *why* points were awarded.
 
 ### Potential Biases & Limitations
-Because this algorithm recipe heavily weights the genre match (+2.0 points) compared to other features, it might over-prioritize genre. This means the system could completely ignore great songs that perfectly match the user's desired mood, energy, and danceability simply because they fall under a different, un-preferred genre. It is a strictly content-based filter, meaning it does not capture more complex, emergent preferences over time or utilize collaborative community data.
+Because algorithms rely purely on predetermined weights, heavily weighting string matches can cause massive "filter bubbles" or "categorical exclusion". The system could completely ignore great songs that perfectly match the user's desired mood and energy simply because they fall under an adjacent, non-matching genre label (e.g. "Soul" vs "R&B"). We proved this numerically during edge-case testing, leading to the creation of the dynamic Strategy Modes to allow users to force the math to respect their true numbers over arbitrary genre tags.
 
 ---
 
-## CLI Verification (Terminal Screenshot Example)
+## CLI Verification & Challenge Results
 
-Running `python3 src/main.py` yields our neatly formatted recommendations, testing the system with both traditional and adversarial profiles to evaluate how the algorithm handles extreme edge cases.
+Running `python3 src/main.py` yields our neatly structured ASCII recommendation tables detailing exactly how the four advanced challenges were implemented!
 
 ```text
 Loading songs from data/songs.csv...
 Loaded songs: 17
 
-🎧 Top Recommendations for the 'High-Energy Pop (The Gym Hero)' Profile:
-==================================================
-#1 | 🎵 Gym Hero by Max Pulse
-    📈 Score: 4.95 / 5.00
-    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+0.98), Danceability proximity (+0.97)
---------------------------------------------------
-#2 | 🎵 Sunrise City by Neon Echo
-    📈 Score: 3.81 / 5.00
-    💡 Why? Genre match (+2.0), Energy proximity (+0.87), Danceability proximity (+0.94)
---------------------------------------------------
-#3 | 🎵 Storm Runner by Voltline
-    📈 Score: 2.77 / 5.00
-    💡 Why? Mood match (+1.0), Energy proximity (+0.96), Danceability proximity (+0.81)
---------------------------------------------------
+🎧 Top Recommendations for the 'High-Energy Pop (The Gym Hero)' Profile (Mode: energy_focused):
+==============================================================================================================
+#   | Title & Artist                 | Score  | Reasons
+--------------------------------------------------------------------------------------------------------------
+1   | Gym Hero by Max Pulse          | 7.85   | Genre match (+1.0), Mood match (+0.5), Energy proximity (+2.94), Danceability proximity (+1.46), Popularity proximity (+0.95), Decade match (+1.0)
+2   | Sunrise City by Neon Echo      | 6.97   | Genre match (+1.0), Energy proximity (+2.61), Danceability proximity (+1.41), Popularity proximity (+0.95), Decade match (+1.0)
+3   | City Pulse by Metro Beats      | 5.71   | Energy proximity (+2.25), Danceability proximity (+1.46), Popularity proximity (+1.00), Decade match (+1.0)
 
-🎧 Top Recommendations for the 'Chill Lofi (The Study Session)' Profile:
-==================================================
-#1 | 🎵 Library Rain by Paper Lanterns
-    📈 Score: 4.97 / 5.00
-    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+1.00), Danceability proximity (+0.97)
---------------------------------------------------
-#2 | 🎵 Midnight Coding by LoRoom
-    📈 Score: 4.86 / 5.00
-    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+0.93), Danceability proximity (+0.93)
---------------------------------------------------
-#3 | 🎵 Focus Flow by LoRoom
-    📈 Score: 3.90 / 5.00
-    💡 Why? Genre match (+2.0), Energy proximity (+0.95), Danceability proximity (+0.95)
---------------------------------------------------
+🎧 Top Recommendations for the 'Deep Intense Rock (The Headbanger)' Profile (Mode: genre_first):
+==============================================================================================================
+#   | Title & Artist                 | Score  | Reasons
+--------------------------------------------------------------------------------------------------------------
+1   | Storm Runner by Voltline       | 7.23   | Genre match (+3.0), Mood match (+0.5), Energy proximity (+0.99), Danceability proximity (+0.74), Popularity proximity (+1.00), Decade match (+1.0)
+2   | Neon Nights by DJ Spark        | 3.43   | Energy proximity (+0.98), Danceability proximity (+0.55), Popularity proximity (+0.90), Decade match (+1.0)
 
-🎧 Top Recommendations for the 'Deep Intense Rock (The Headbanger)' Profile:
-==================================================
-#1 | 🎵 Storm Runner by Voltline
-    📈 Score: 4.73 / 5.00
-    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+0.99), Danceability proximity (+0.74)
---------------------------------------------------
-#2 | 🎵 Gym Hero by Max Pulse
-    📈 Score: 2.49 / 5.00
-    💡 Why? Mood match (+1.0), Energy proximity (+0.97), Danceability proximity (+0.52)
---------------------------------------------------
-
-🎧 Top Recommendations for the 'Adversarial Edge Case (Hyper-Danceable Sad Classical)' Profile:
-==================================================
-#1 | 🎵 Moonlit Sonata by Clara Bow
-    📈 Score: 3.45 / 5.00
-    💡 Why? Genre match (+2.0), Mood match (+1.0), Energy proximity (+0.20), Danceability proximity (+0.25)
---------------------------------------------------
-#2 | 🎵 Gym Hero by Max Pulse
-    📈 Score: 1.91 / 5.00
-    💡 Why? Energy proximity (+0.98), Danceability proximity (+0.93)
---------------------------------------------------
-#3 | 🎵 Neon Nights by DJ Spark
-    📈 Score: 1.83 / 5.00
-    💡 Why? Energy proximity (+0.93), Danceability proximity (+0.90)
---------------------------------------------------
+🎧 Top Recommendations for the 'Adversarial Edge Case (Hyper-Danceable Sad Classical)' Profile (Mode: default):
+==============================================================================================================
+#   | Title & Artist                 | Score  | Reasons
+--------------------------------------------------------------------------------------------------------------
+1   | Moonlit Sonata by Clara Bow    | 4.60   | Genre match (+1.0), Mood match (+1.0), Energy proximity (+0.40), Danceability proximity (+0.25), Popularity proximity (+0.95), Decade match (+1.0)
+2   | Neon Nights by DJ Spark        | 3.56   | Energy proximity (+1.86), Danceability proximity (+0.90), Popularity proximity (+0.80)
+3   | Storm Runner by Voltline       | 3.53   | Energy proximity (+1.92), Danceability proximity (+0.71), Popularity proximity (+0.90)
 ```
 
 ---
@@ -126,174 +79,31 @@ Loaded songs: 17
 1. Create a virtual environment (optional but recommended):
 
    ```bash
-   python -m venv .venv
+   python3 -m venv .venv
    source .venv/bin/activate      # Mac or Linux
    .venv\Scripts\activate         # Windows
+   ```
 
-2. Install dependencies
+2. Install dependencies:
 
-```bash
-pip install -r requirements.txt
-```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-3. Run the app:
+3. Run the app directly targeting the CLI file:
 
-```bash
-python -m src.main
-```
-
-### Running Tests
-
-Run the starter tests with:
-
-```bash
-pytest
-```
-
-You can add more tests in `tests/test_recommender.py`.
+   ```bash
+   python3 src/main.py
+   ```
 
 ---
 
-## Experiments You Tried
+## Documentation & Reflection
 
-Use this section to document the experiments you ran. For example:
-
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+Detailed evaluation documentation, dataset weaknesses, and reflections mapping this simulation to the behaviors of real-world recommendation ecosystems like Spotify can be found fully filled out here:
+* [**Model Card**](model_card.md)
+* [**Profile Evaluation & Reflection Comparisons**](reflection.md)
 
 ---
-
-## Limitations and Risks
-
-Summarize some limitations of your recommender.
-
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
-
-You will go deeper on this in your model card.
-
----
-
-## Reflection
-
-Read and complete `model_card.md`:
-
-[**Model Card**](model_card.md)
-
-Write 1 to 2 paragraphs here about what you learned:
-
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
-
-
----
-
-## 7. `model_card_template.md`
-
-Combines reflection and model card framing from the Module 3 guidance. :contentReference[oaicite:2]{index=2}  
-
-```markdown
-# 🎧 Model Card - Music Recommender Simulation
-
-## 1. Model Name
-
-Give your recommender a name, for example:
-
-> VibeFinder 1.0
-
----
-
-## 2. Intended Use
-
-- What is this system trying to do
-- Who is it for
-
-Example:
-
-> This model suggests 3 to 5 songs from a small catalog based on a user's preferred genre, mood, and energy level. It is for classroom exploration only, not for real users.
-
----
-
-## 3. How It Works (Short Explanation)
-
-Describe your scoring logic in plain language.
-
-- What features of each song does it consider
-- What information about the user does it use
-- How does it turn those into a number
-
-Try to avoid code in this section, treat it like an explanation to a non programmer.
-
----
-
-## 4. Data
-
-Describe your dataset.
-
-- How many songs are in `data/songs.csv`
-- Did you add or remove any songs
-- What kinds of genres or moods are represented
-- Whose taste does this data mostly reflect
-
----
-
-## 5. Strengths
-
-Where does your recommender work well
-
-You can think about:
-- Situations where the top results "felt right"
-- Particular user profiles it served well
-- Simplicity or transparency benefits
-
----
-
-## 6. Limitations and Bias
-
-Where does your recommender struggle
-
-Some prompts:
-- Does it ignore some genres or moods
-- Does it treat all users as if they have the same taste shape
-- Is it biased toward high energy or one genre by default
-- How could this be unfair if used in a real product
-
----
-
-## 7. Evaluation
-
-How did you check your system
-
-Examples:
-- You tried multiple user profiles and wrote down whether the results matched your expectations
-- You compared your simulation to what a real app like Spotify or YouTube tends to recommend
-- You wrote tests for your scoring logic
-
-You do not need a numeric metric, but if you used one, explain what it measures.
-
----
-
-## 8. Future Work
-
-If you had more time, how would you improve this recommender
-
-Examples:
-
-- Add support for multiple users and "group vibe" recommendations
-- Balance diversity of songs instead of always picking the closest match
-- Use more features, like tempo ranges or lyric themes
-
----
-
-## 9. Personal Reflection
-
-A few sentences about what you learned:
-
-- What surprised you about how your system behaved
-- How did building this change how you think about real music recommenders
-- Where do you think human judgment still matters, even if the model seems "smart"
+*Created as part of the AI-110 Music Recommender Simulation project.*
 
